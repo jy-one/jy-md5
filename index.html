@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>读取文件并加密</title>
+  <style type="text/css">
+    #drop_area {
+      height: 100px;
+      border: 2px dotted #B2B2B2;
+      font-size: 25px;   
+      text-align: center;
+      color: #444444;
+    }
+    ul {
+      list-style: none;
+      padding: 0px;
+      display:inline-block;
+      border:2px solid #666666;
+      
+    }
+    li {
+      list-style: none;
+      padding: 0px;
+      /*float: left;  */
+    }
+
+   /* #md5Lists {
+      width: 350px;
+      margin-left: -10px;
+    }*/
+    #md5List {
+        width: 360px;
+        height: 19px;
+        /*border-top:2px solid #666666;*/
+    }
+   
+    .box {
+        display: inline-block;
+        
+
+        height: 19px;
+        background-color: #17A05E;
+    }
+  </style>
+  <script type="text/javascript" src="./js/jquery1.7.js"></script>
+  <script type="text/javascript" src="./js/spark-md5.js" ></script>
+</head>
+<body>
+  <div id="drop_area">
+  将文件拖入此区域计算md5
+  </div>
+  <div id="Lists">
+    
+  </div>
+  
+  
+  
+  <script type="text/javascript">
+    $(function(){ 
+
+      //阻止浏览器默认行。 
+      $(document).on({ 
+          dragleave:function(e){    //拖离 
+              e.preventDefault(); 
+          }, 
+          drop:function(e){  //拖后放 
+              e.preventDefault(); 
+          }, 
+          dragenter:function(e){    //拖进 
+              e.preventDefault(); 
+          }, 
+          dragover:function(e){    //拖来拖去 
+              e.preventDefault(); 
+          } 
+      }); 
+
+      //拖拽区域
+      var mydrop = document.getElementById('drop_area');  
+      //记录次数
+      var filenum =0;
+      mydrop.addEventListener("drop",function(e){ 
+        
+        e.preventDefault(); //取消默认浏览器拖拽效果 
+        var fileList = e.dataTransfer.files; //获取文件对象 
+        //检测是否是拖拽文件到页面的操作 
+        if(fileList.length == 0){ 
+            return false; 
+        } 
+        // var file = window.webkitURL.createObjectURL(fileList[0]) || window.URL.createObjectURL(fileList[0])||window.mozURL.createObjectURL(fileList[0]); 
+        // var file = window.URL.createObjectURL(fileList[0]);
+     
+        
+        var filename = fileList[0].name; //文件名称
+        console.log(filename);
+        $('#Lists').append("<ul ><li id='fileLists'>文件名:"+filename+"</li><li id='md5List'><span class='box' id='box"+filenum+"'></span></li></ul><br>");
+        calculate(fileList[0],filenum)
+        filenum++;
+      },false);
+
+    }); 
+   //读取文件计算md5(含进度)
+    function calculate(file,filenum){ //参数文件和第几个文件
+
+    var fileReader = new FileReader(),
+        
+        box=document.getElementsByClassName('box')[filenum],
+
+        blobSlice = File.prototype.mozSlice || File.prototype.webkitSlice || File.prototype.slice,  
+        // file = fileList[0],  
+        chunkSize = 2097152, // 2MB 字节  
+        chunks = Math.ceil(file.size / chunkSize), //需要读取的次数
+        //读取过的次数
+        currentChunk = 0, 
+        //实例化MD5方法 
+        spark = new SparkMD5(),  
+        boxwidth = "100%";
+
+    fileReader.onload = function(e) { 
+      //读取进度
+        boxwidth = Math.floor((((currentChunk+1)/chunks))*100 ).toString()+"%";
+        $(box).attr({"style":"width:"+boxwidth});
+        // console.log(boxwidth);
+        // console.log("读取进度", currentChunk + 1, "/", chunks);
+
+        spark.appendBinary(e.target.result); // append binary string 
+
+        currentChunk++;  
+        //判断读取完成,展示md5 hash
+        if (currentChunk < chunks) {  
+            loadNext(); 
+        }  
+        else {  
+            // $(box).attr({"style":"width:100%"});
+            console.log("读取结束");  
+            $(box).text('MD5 hash:'+spark.end());  
+            console.log("此次hash", spark.end()); // 打印 hash  
+        }  
+    };  
+    //将读取的文件转换成二进制
+    function loadNext() {  
+        var start = currentChunk * chunkSize,  
+            end = start + chunkSize >= file.size ? file.size : start + chunkSize;  
+  
+        fileReader.readAsBinaryString(blobSlice.call(file, start, end));  
+    };  
+  
+    loadNext(); 
+     
+}  
+  </script>
+</body>
+</html>
